@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"sync"
 	"time"
 
 	api "github.com/iredelmeier/grpc-http-shared-port"
@@ -17,6 +18,11 @@ const (
 func main() {
 	server := api.NewServer()
 	defer server.Shutdown(context.Background())
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
 	go func() {
 		if err := server.Serve(); err != nil {
 			log.Fatalf("Failed to start server: %s", err)
@@ -27,8 +33,13 @@ func main() {
 		log.Fatalf("Failed to run server: %s", err)
 	}
 
+	log.Printf("Server running at http://%s", api.Address)
+
 	log.Print("Testing insecure connection")
 	testConn(grpc.WithInsecure())
+	log.Print("Success!")
+
+	wg.Wait()
 }
 
 func testConn(opts ...grpc.DialOption) {

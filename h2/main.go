@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	api "github.com/iredelmeier/grpc-http-shared-port"
@@ -22,8 +23,13 @@ func main() {
 	server := api.NewServer()
 	defer server.Shutdown(context.Background())
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
 	go func() {
-		// Looks like this throws an error on shutdown these days
+		// Looks like this throws an error on shutdown if you
+		// don't keep the server running (i.e., without the wait group waiting),
 		// but this is a proof-of-concept so ¯\_(ツ)_/¯
 		if err := server.ServeTLS(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start server: %s", err)
@@ -34,10 +40,13 @@ func main() {
 		log.Fatalf("Failed to run server: %s", err)
 	}
 
+	log.Printf("Server running at https://%s", api.Address)
+
 	log.Print("Testing unverified TLS connection")
 	testConn(grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
 		InsecureSkipVerify: true,
 	})))
+	log.Print("Success!")
 
 	log.Print("Testing secure TLS connection")
 	certPool := x509.NewCertPool()
@@ -47,6 +56,9 @@ func main() {
 	testConn(grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
 		RootCAs: certPool,
 	})))
+	log.Print("Success!")
+
+	wg.Wait()
 }
 
 func testConn(opts ...grpc.DialOption) {

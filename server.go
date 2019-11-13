@@ -131,6 +131,7 @@ func (s *Server) ServeTLS() error {
 	}
 
 	s.tlsConfig = &tls.Config{
+		NextProtos:   []string{"h2", "http/1.1"},
 		Certificates: []tls.Certificate{cert},
 	}
 

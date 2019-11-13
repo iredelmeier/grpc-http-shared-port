@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"log"
+	"net/http"
 	"time"
 
 	api "github.com/iredelmeier/grpc-http-shared-port"
@@ -20,8 +21,11 @@ const (
 func main() {
 	server := api.NewServer()
 	defer server.Shutdown(context.Background())
+
 	go func() {
-		if err := server.ServeTLS(); err != nil {
+		// Looks like this throws an error on shutdown these days
+		// but this is a proof-of-concept so ¯\_(ツ)_/¯
+		if err := server.ServeTLS(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start server: %s", err)
 		}
 	}()

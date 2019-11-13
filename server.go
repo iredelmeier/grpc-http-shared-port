@@ -131,6 +131,11 @@ func (s *Server) ServeTLS() error {
 	}
 
 	s.tlsConfig = &tls.Config{
+		// Specify protocols explicitly.
+		// This is done by `http.Server#ServeTLS` but not by other mechanisms,
+		// such as providing a TLS listener to `http.Server#Serve`.
+		// Without `h2`, the server won't handle the ALPN negotation and so
+		// requests that *start* with HTTP/1.1 won't get upgraded.
 		NextProtos:   []string{"h2", "http/1.1"},
 		Certificates: []tls.Certificate{cert},
 	}
